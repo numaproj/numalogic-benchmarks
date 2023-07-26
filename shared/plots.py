@@ -3,15 +3,26 @@ from sklearn.metrics import RocCurveDisplay
 import numpy.typing as npt
 
 
-def plot_reconerr_comparision(reconerr, input_, labels, start=0, end=None, title=None):
+def plot_reconerr_comparision(
+    reconerr, input_, labels, start=0, feature_idx=None, end=None, title=None
+):
     r"""Plots the reconstruction error with respect to the input and output labels."""
     end = end or len(reconerr)
     fig, ax = plt.subplots(3, 1, figsize=(12, 7))
-    ax[0].plot(reconerr[start:end], color="b", label="reconstruction error")
+
+    if feature_idx is not None:
+        reconerr = reconerr[start:end, feature_idx]
+        input_ = input_[start:end, feature_idx]
+    else:
+        reconerr = reconerr[start:end]
+        input_ = input_[start:end]
+    labels = labels[start:end]
+
+    ax[0].plot(reconerr, color="b", label="reconstruction error")
     ax[0].legend(shadow=True)
-    ax[1].plot(input_[start:end], label="input data")
+    ax[1].plot(input_, label="input data")
     ax[1].legend(shadow=True)
-    ax[2].plot(labels[start:end], color="g", label="labels")
+    ax[2].plot(labels, color="g", label="labels")
     ax[2].legend(shadow=True)
     if title:
         ax[0].set_title(title)
