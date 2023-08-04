@@ -20,6 +20,7 @@ class SMDDataModule(TimeseriesDataModule):
             batch_size: int = 64,
             preproc_transforms: Optional[list] = None,
             split_ratios: Sequence[float] = (0.5, 0.2, 0.3),
+            feature_idxs: Optional[int | list[int]] = None,
             *args,
             **kwargs,
     ):
@@ -27,6 +28,13 @@ class SMDDataModule(TimeseriesDataModule):
 
         self.group_id = group_id
         self.sub_id = sub_id
+        if feature_idxs is not None:
+            if isinstance(feature_idxs, int):
+                self.feature_idxs = [feature_idxs]
+            else:
+                self.feature_idxs = feature_idxs
+        else:
+            self.feature_idxs = []
 
         if len(split_ratios) != 3 or sum(split_ratios) != 1.0:
             raise ValueError("Sum of all the 3 ratios should be 1.0")
@@ -108,17 +116,15 @@ class SMDDataModule(TimeseriesDataModule):
 
     def read_data(self) -> tuple[npt.NDArray[float], npt.NDArray[int]]:
         df = pd.read_csv(
-            os.path.join(self.data_dir, "test", f"machine-{self.group_id}-{self.sub_id}.txt")
+            os.path.join(self.data_dir, "test", f"machine-{self.group_id}-{self.sub_id}.txt"),
         )
         label_df = pd.read_csv(
             os.path.join(self.data_dir, "test_label", f"machine-{self.group_id}-{self.sub_id}.txt")
         )
-        return df.to_numpy(), label_df.to_numpy(dtype=int)
+        data = df.to_numpy()
+        if self.feature_idxs:
+            data = data[:, self.feature_idxs]
+        return data, label_df.to_numpy(dtype=int)
 
     def predict_dataloader(self):
         return DataLoader(self.test_dataset, batch_size=self.batch_size)
-
-
-if __name__ == "__main__":
-    dm = SMDDataModule(data_dir="data/", group_id=1, sub_id=1, seq_len=12)
-    dm.setup("predict")
